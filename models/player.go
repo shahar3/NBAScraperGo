@@ -9,4 +9,14 @@ type Player struct {
 	Position     []utils.Position
 	Height       int
 	Weight       int
+	Games        []*PlayerGame
+	Stats        PlayerStats
+}
+
+type PlayerGame struct {
+	HomeTeam           *Team
+	AwayTeam           *Team
+	HomeScore          string
+	AwayScore          string
+	PlayerStatsForGame *PlayerStats
 }

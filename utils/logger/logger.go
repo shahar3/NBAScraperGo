@@ -17,7 +17,7 @@ const (
 )
 
 type Logger struct {
-	tag string
+	Tag string
 }
 
 func (logger *Logger) Write(msg string, logType Type){

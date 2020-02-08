@@ -14,14 +14,27 @@ import (
 )
 
 type Scraper struct {
-	logger *logger.Logger
-	Teams map[string]*models.Team
+	Logger *logger.Logger
+	Teams  map[string]*models.Team
 }
 
+//Init is responsible of the main logic behind the scraper
 func (scraper *Scraper) Init() {
-	scraper.logger.Write("Initiating the NBA Scraper", logger.LogTypeDebug)
+	scraper.Logger.Write("Initiating the NBA Scraper", logger.LogTypeDebug)
 	scraper.Teams = make(map[string]*models.Team)
 
+	scraper.getTeams()
+
+	scraper.Logger.Write("Getting team rosters", logger.LogTypeHeader)
+	for _, team := range scraper.Teams {
+		team.GetRoster()
+	}
+
+	//Get the schedule
+	scraper.getSchedule()
+}
+
+func (scraper *Scraper) getTeams() {
 	startingUrl := fmt.Sprintf("%s%s", constants.BaseURL, constants.TeamsEndPoint)
 	dom := utils.GetDocument(startingUrl)
 
@@ -29,20 +42,12 @@ func (scraper *Scraper) Init() {
 		link, ok := s.Attr("href")
 		if ok {
 			scraper.Teams[s.Text()] = &models.Team{
-				Logger: scraper.logger,
-				Name: s.Text(),
-				Url:  link,
+				Logger: scraper.Logger,
+				Name:   s.Text(),
+				Url:    link,
 			}
 		}
 	})
-
-	scraper.logger.Write("Getting team rosters", logger.LogTypeHeader)
-	for _, team := range scraper.Teams {
-		team.GetRoster()
-	}
-
-	//Get the schedule
-	scraper.getSchedule()
 }
 
 func (scraper *Scraper) getSchedule() {
@@ -59,11 +64,12 @@ func (scraper *Scraper) getSchedule() {
 
 	//iterate on schedule json and extract games
 	for _, val := range sched.MonthSchedule {
-		fmt.Println(val.Mscd.Name)
+		scraper.Logger.Write(fmt.Sprintf("Get the schedule of %s", val.Mscd.Name), logger.LogTypeHeader)
 		for _, gameVal := range val.Mscd.Games {
 			if gameVal.GameWeek == 0 {
 				continue //skip pre season games
 			}
+
 			awayTeam := fmt.Sprintf("%s %s", gameVal.AwayTeam.City, gameVal.AwayTeam.Nickname)
 			homeTeam := fmt.Sprintf("%s %s", gameVal.HomeTeam.City, gameVal.HomeTeam.Nickname)
 			game := models.Game{
@@ -76,7 +82,11 @@ func (scraper *Scraper) getSchedule() {
 			gameDate = strings.Replace(gameDate, "-", "", -1)
 
 			game.ExtractGame(gameId, gameDate)
-			fmt.Println("ok")
+			//add game to both home and away teams
+			scraper.Teams[homeTeam].Games = append(scraper.Teams[homeTeam].Games, &game)
+			scraper.Teams[awayTeam].Games = append(scraper.Teams[awayTeam].Games, &game)
+
+			scraper.Logger.Write(fmt.Sprintf("Added the game: %s (%s) - %s (%s)", homeTeam, game.HomeTeamStats.Points, awayTeam, game.AwayTeamStats.Points), logger.LogTypeDebug)
 		}
 	}
 }
