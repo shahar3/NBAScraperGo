@@ -10,7 +10,7 @@ type Type string
 
 const (
 	//Logger types
-	LogTypeHeader Type = "Header"
+	LogTypeHeader  Type = "Header"
 	LogTypeDebug   Type = "Debug"
 	LogTypeWarning Type = "Warning"
 	LogTypeFatal   Type = "Fatal"
@@ -20,7 +20,7 @@ type Logger struct {
 	Tag string
 }
 
-func (logger *Logger) Write(msg string, logType Type){
+func (logger *Logger) Write(msg string, logType Type) {
 	switch logType {
 	case LogTypeHeader:
 		log.Println(color.GreenString(strings.Repeat("*", len(msg)+8)))
